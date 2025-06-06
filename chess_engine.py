@@ -6,6 +6,7 @@
 #
 from Piece import Rook, Knight, Bishop, Queen, King, Pawn
 from enums import Player
+from logger_config import logger
 
 '''
 r \ c     0           1           2           3           4           5           6           7 
@@ -30,6 +31,7 @@ class game_state:
     def __init__(self):
         # The board is a 2D array
         # TODO: Change to a numpy format later
+        
         self.white_captives = []
         self.black_captives = []
         self.move_log = []
@@ -109,6 +111,7 @@ class game_state:
             [black_rook_1, black_knight_1, black_bishop_1, black_king, black_queen, black_bishop_2, black_knight_2,
              black_rook_2]
         ]
+        self._last_check_sources = []
 
     def get_piece(self, row, col):
         if (0 <= row < 8) and (0 <= col < 8):
@@ -216,20 +219,35 @@ class game_state:
             return None
 
     # 0 if white lost, 1 if black lost, 2 if stalemate, 3 if not game over
+
+    # 0 if white lost, 1 if black lost, 2 if stalemate, 3 if not game over
     def checkmate_stalemate_checker(self):
+        if hasattr(self, '_game_ended_logged') and self._game_ended_logged:
+            return 3  # כבר הודפס
+
         all_white_moves = self.get_all_legal_moves(Player.PLAYER_1)
         all_black_moves = self.get_all_legal_moves(Player.PLAYER_2)
+
         if self._is_check and self.whose_turn() and not all_white_moves:
-            print("white lost")
+            logger.info("Checkmate! Black wins. (White has no legal moves and is in check)")
+            self._game_ended_logged = True
             return 0
         elif self._is_check and not self.whose_turn() and not all_black_moves:
-            print("black lost")
+            logger.info("Checkmate! White wins. (Black has no legal moves and is in check)")
+            self._game_ended_logged = True
             return 1
-        elif not all_white_moves and not all_black_moves:
+        elif not self._is_check and self.whose_turn() and not all_white_moves:
+            logger.info("Stalemate! White has no legal moves but is not in check.")
+            self._game_ended_logged = True
+            return 2
+        elif not self._is_check and not self.whose_turn() and not all_black_moves:
+            logger.info("Stalemate! Black has no legal moves but is not in check.")
+            self._game_ended_logged = True
             return 2
         else:
             return 3
 
+            
     def get_all_legal_moves(self, player):
         # _all_valid_moves = [[], []]
         # for row in range(0, 8):
@@ -307,154 +325,287 @@ class game_state:
         return self._en_passant_previous
 
     # Move a piece
+
+
+    # def move_piece(self, starting_square, ending_square, is_ai):
+    #     current_square_row = starting_square[0]  # The integer row value of the starting square
+    #     current_square_col = starting_square[1]  # The integer col value of the starting square
+    #     next_square_row = ending_square[0]  # The integer row value of the ending square
+    #     next_square_col = ending_square[1]  # The integer col value of the ending square
+
+    #     if self.is_valid_piece(current_square_row, current_square_col) and \
+    #             (((self.whose_turn() and self.get_piece(current_square_row, current_square_col).is_player(
+    #                 Player.PLAYER_1)) or
+    #             (not self.whose_turn() and self.get_piece(current_square_row, current_square_col).is_player(
+    #                 Player.PLAYER_2)))):
+
+    #         # The chess piece at the starting square
+    #         moving_piece = self.get_piece(current_square_row, current_square_col)
+
+    #         player_str = "White" if moving_piece.is_player(Player.PLAYER_1) else "Black"
+    #         piece_name = moving_piece.get_name().upper()
+
+    #         valid_moves = self.get_valid_moves(starting_square)
+
+    #         temp = True
+
+    #         if ending_square in valid_moves:
+    #             moved_to_piece = self.get_piece(next_square_row, next_square_col)
+
+    #             # Castling moves
+    #             if piece_name == "K":
+    #                 logger.info(f"{player_str} King moves from {starting_square} to {ending_square}")
+
+    #                 if moved_to_piece == Player.EMPTY and next_square_col == 1 and self.king_can_castle_left(
+    #                         moving_piece.get_player()):
+    #                     logger.info(f"{player_str} King castles left")
+    #                     move = chess_move(starting_square, ending_square, self, self._is_check)
+    #                     move.castling_move((0 if player_str == "White" else 7, 0), (0 if player_str == "White" else 7, 2), self)
+    #                     self.move_log.append(move)
+
+    #                     # move rook
+    #                     self.get_piece(0 if player_str == "White" else 7, 0).change_col_number(2)
+
+    #                     self.board[0 if player_str == "White" else 7][2] = self.board[0 if player_str == "White" else 7][0]
+    #                     self.board[0 if player_str == "White" else 7][0] = Player.EMPTY
+
+    #                     if player_str == "White":
+    #                         self.white_king_can_castle[0] = False
+    #                         self.white_king_can_castle[1] = False
+    #                     else:
+    #                         self.black_king_can_castle[0] = False
+    #                         self.black_king_can_castle[1] = False
+
+    #                 elif moved_to_piece == Player.EMPTY and next_square_col == 5 and self.king_can_castle_right(
+    #                         moving_piece.get_player()):
+    #                     logger.info(f"{player_str} King castles right")
+    #                     move = chess_move(starting_square, ending_square, self, self._is_check)
+    #                     move.castling_move((0 if player_str == "White" else 7, 7), (0 if player_str == "White" else 7, 4), self)
+    #                     self.move_log.append(move)
+
+    #                     self.get_piece(0 if player_str == "White" else 7, 7).change_col_number(4)
+
+    #                     self.board[0 if player_str == "White" else 7][4] = self.board[0 if player_str == "White" else 7][7]
+    #                     self.board[0 if player_str == "White" else 7][7] = Player.EMPTY
+
+    #                     if player_str == "White":
+    #                         self.white_king_can_castle[0] = False
+    #                         self.white_king_can_castle[2] = False
+    #                     else:
+    #                         self.black_king_can_castle[0] = False
+    #                         self.black_king_can_castle[2] = False
+    #                 else:
+    #                     move = chess_move(starting_square, ending_square, self, self._is_check)
+    #                     self.move_log.append(move)
+    #                     if player_str == "White":
+    #                         self.white_king_can_castle[0] = False
+    #                     else:
+    #                         self.black_king_can_castle[0] = False
+
+    #                 if player_str == "White":
+    #                     self._white_king_location = (next_square_row, next_square_col)
+    #                 else:
+    #                     self._black_king_location = (next_square_row, next_square_col)
+
+    #             # Rook moves
+    #             elif piece_name == "R":
+    #                 logger.info(f"{player_str} Rook moves from {starting_square} to {ending_square}")
+    #                 if moving_piece.is_player(Player.PLAYER_1) and current_square_col == 0:
+    #                     self.white_king_can_castle[1] = False
+    #                 elif moving_piece.is_player(Player.PLAYER_1) and current_square_col == 7:
+    #                     self.white_king_can_castle[2] = False
+    #                 elif moving_piece.is_player(Player.PLAYER_2) and current_square_col == 0:
+    #                     self.black_king_can_castle[1] = False
+    #                 elif moving_piece.is_player(Player.PLAYER_2) and current_square_col == 7:
+    #                     self.black_king_can_castle[2] = False
+    #                 self.move_log.append(chess_move(starting_square, ending_square, self, self._is_check))
+    #                 self.can_en_passant_bool = False
+
+    #             # Pawn moves
+    #             elif piece_name == "P":
+    #                 logger.info(f"{player_str} Pawn moves from {starting_square} to {ending_square}")
+
+    #                 # Promoting white pawn
+    #                 if moving_piece.is_player(Player.PLAYER_1) and next_square_row == 7:
+    #                     if is_ai:
+    #                         self.promote_pawn_ai(starting_square, moving_piece, ending_square)
+    #                     else:
+    #                         self.promote_pawn(starting_square, moving_piece, ending_square)
+    #                     temp = False
+    #                 # Promoting black pawn
+    #                 elif moving_piece.is_player(Player.PLAYER_2) and next_square_row == 0:
+    #                     if is_ai:
+    #                         self.promote_pawn_ai(starting_square, moving_piece, ending_square)
+    #                     else:
+    #                         self.promote_pawn(starting_square, moving_piece, ending_square)
+    #                     temp = False
+    #                 # Moving pawn forward by two
+    #                 elif abs(next_square_row - current_square_row) == 2 and current_square_col == next_square_col:
+    #                     logger.info(f"{player_str} Pawn moves forward two squares")
+    #                     self.move_log.append(chess_move(starting_square, ending_square, self, self._is_check))
+    #                     self._en_passant_previous = (next_square_row, next_square_col)
+    #                 # en passant
+    #                 elif abs(next_square_row - current_square_row) == 1 and abs(
+    #                         current_square_col - next_square_col) == 1 and \
+    #                         self.can_en_passant(current_square_row, current_square_col):
+    #                     logger.info(f"{player_str} Pawn performs en passant capture")
+    #                     if moving_piece.is_player(Player.PLAYER_1):
+    #                         move = chess_move(starting_square, ending_square, self, self._is_check)
+    #                         move.en_passant_move(self.board[next_square_row - 1][next_square_col],
+    #                                             (next_square_row - 1, next_square_col))
+    #                         self.move_log.append(move)
+    #                         self.board[next_square_row - 1][next_square_col] = Player.EMPTY
+    #                     else:
+    #                         move = chess_move(starting_square, ending_square, self, self._is_check)
+    #                         move.en_passant_move(self.board[next_square_row + 1][next_square_col],
+    #                                             (next_square_row + 1, next_square_col))
+    #                         self.move_log.append(move)
+    #                         self.board[next_square_row + 1][next_square_col] = Player.EMPTY
+    #                 # moving forward by one or taking a piece
+    #                 else:
+    #                     self.move_log.append(chess_move(starting_square, ending_square, self, self._is_check))
+    #                     self.can_en_passant_bool = False
+
+    #             # Knight and other pieces
+    #             else:
+    #                 if piece_name == "N":
+    #                     logger.info(f"{player_str} Knight moves from {starting_square} to {ending_square}")
+    #                 else:
+    #                     logger.info(f"{player_str} {piece_name} moves from {starting_square} to {ending_square}")
+
+    #                 self.move_log.append(chess_move(starting_square, ending_square, self, self._is_check))
+    #                 self.can_en_passant_bool = False
+
+    #             if temp:
+    #                 moving_piece.change_row_number(next_square_row)
+    #                 moving_piece.change_col_number(next_square_col)
+    #                 self.board[next_square_row][next_square_col] = self.board[current_square_row][current_square_col]
+    #                 self.board[current_square_row][current_square_col] = Player.EMPTY
+
+    #             self.white_turn = not self.white_turn
+
+    #         else:
+    #             logger.info(f"Invalid move attempted from {starting_square} to {ending_square} by {player_str}")
     def move_piece(self, starting_square, ending_square, is_ai):
-        current_square_row = starting_square[0]  # The integer row value of the starting square
-        current_square_col = starting_square[1]  # The integer col value of the starting square
-        next_square_row = ending_square[0]  # The integer row value of the ending square
-        next_square_col = ending_square[1]  # The integer col value of the ending square
+        current_square_row = starting_square[0]
+        current_square_col = starting_square[1]
+        next_square_row = ending_square[0]
+        next_square_col = ending_square[1]
 
         if self.is_valid_piece(current_square_row, current_square_col) and \
-                (((self.whose_turn() and self.get_piece(current_square_row, current_square_col).is_player(
-                    Player.PLAYER_1)) or
-                  (not self.whose_turn() and self.get_piece(current_square_row, current_square_col).is_player(
-                      Player.PLAYER_2)))):
+                (((self.whose_turn() and self.get_piece(current_square_row, current_square_col).is_player(Player.PLAYER_1)) or
+                (not self.whose_turn() and self.get_piece(current_square_row, current_square_col).is_player(Player.PLAYER_2)))):
 
-            # The chess piece at the starting square
             moving_piece = self.get_piece(current_square_row, current_square_col)
-
+            player_str = "White" if moving_piece.is_player(Player.PLAYER_1) else "Black"
+            piece_name = moving_piece.get_name().upper()
             valid_moves = self.get_valid_moves(starting_square)
 
             temp = True
 
             if ending_square in valid_moves:
                 moved_to_piece = self.get_piece(next_square_row, next_square_col)
-                if moving_piece.get_name() is "k":
-                    if moving_piece.is_player(Player.PLAYER_1):
-                        if moved_to_piece == Player.EMPTY and next_square_col == 1 and self.king_can_castle_left(
-                                moving_piece.get_player()):
-                            move = chess_move(starting_square, ending_square, self, self._is_check)
-                            move.castling_move((0, 0), (0, 2), self)
-                            self.move_log.append(move)
 
-                            # move rook
-                            self.get_piece(0, 0).change_col_number(2)
-
-                            self.board[0][2] = self.board[0][0]
-                            self.board[0][0] = Player.EMPTY
-
+                # King moves
+                if piece_name == "K":
+                    logger.debug(f"{player_str} King moves from {starting_square} to {ending_square}")
+                    if moved_to_piece == Player.EMPTY and next_square_col == 1 and self.king_can_castle_left(moving_piece.get_player()):
+                        logger.debug(f"{player_str} King castles left")
+                        move = chess_move(starting_square, ending_square, self, self._is_check)
+                        move.castling_move((0 if player_str == "White" else 7, 0), (0 if player_str == "White" else 7, 2), self)
+                        self.move_log.append(move)
+                        self.get_piece(0 if player_str == "White" else 7, 0).change_col_number(2)
+                        self.board[0 if player_str == "White" else 7][2] = self.board[0 if player_str == "White" else 7][0]
+                        self.board[0 if player_str == "White" else 7][0] = Player.EMPTY
+                        if player_str == "White":
                             self.white_king_can_castle[0] = False
                             self.white_king_can_castle[1] = False
-
-                        elif moved_to_piece == Player.EMPTY and next_square_col == 5 and self.king_can_castle_right(
-                                moving_piece.get_player()):
-                            move = chess_move(starting_square, ending_square, self, self._is_check)
-                            move.castling_move((0, 7), (0, 4), self)
-                            self.move_log.append(move)
-                            # move rook
-                            self.get_piece(0, 7).change_col_number(4)
-
-                            self.board[0][4] = self.board[0][7]
-                            self.board[0][7] = Player.EMPTY
-
+                        else:
+                            self.black_king_can_castle[0] = False
+                            self.black_king_can_castle[1] = False
+                    elif moved_to_piece == Player.EMPTY and next_square_col == 5 and self.king_can_castle_right(moving_piece.get_player()):
+                        logger.debug(f"{player_str} King castles right")
+                        move = chess_move(starting_square, ending_square, self, self._is_check)
+                        move.castling_move((0 if player_str == "White" else 7, 7), (0 if player_str == "White" else 7, 4), self)
+                        self.move_log.append(move)
+                        self.get_piece(0 if player_str == "White" else 7, 7).change_col_number(4)
+                        self.board[0 if player_str == "White" else 7][4] = self.board[0 if player_str == "White" else 7][7]
+                        self.board[0 if player_str == "White" else 7][7] = Player.EMPTY
+                        if player_str == "White":
                             self.white_king_can_castle[0] = False
                             self.white_king_can_castle[2] = False
                         else:
-                            move = chess_move(starting_square, ending_square, self, self._is_check)
-                            self.move_log.append(move)
-                            self.white_king_can_castle[0] = False
-                        self._white_king_location = (next_square_row, next_square_col)
-                    else:
-                        if moved_to_piece == Player.EMPTY and next_square_col == 1 and self.king_can_castle_left(
-                                moving_piece.get_player()):
-                            move = chess_move(starting_square, ending_square, self, self._is_check)
-                            move.castling_move((7, 0), (7, 2), self)
-                            self.move_log.append(move)
-
-                            self.get_piece(7, 0).change_col_number(2)
-                            # move rook
-                            self.board[7][2] = self.board[7][0]
-                            self.board[7][0] = Player.EMPTY
-
-                            self.black_king_can_castle[0] = False
-                            self.black_king_can_castle[1] = False
-                        elif moved_to_piece == Player.EMPTY and next_square_col == 5 and self.king_can_castle_right(
-                                moving_piece.get_player()):
-                            move = chess_move(starting_square, ending_square, self, self._is_check)
-                            move.castling_move((7, 7), (7, 4), self)
-                            self.move_log.append(move)
-
-                            self.get_piece(0, 7).change_col_number(4)
-
-                            # move rook
-                            self.board[7][4] = self.board[7][7]
-                            self.board[7][7] = Player.EMPTY
-
                             self.black_king_can_castle[0] = False
                             self.black_king_can_castle[2] = False
+                    else:
+                        move = chess_move(starting_square, ending_square, self, self._is_check)
+                        self.move_log.append(move)
+                        if player_str == "White":
+                            self.white_king_can_castle[0] = False
                         else:
-                            move = chess_move(starting_square, ending_square, self, self._is_check)
-                            self.move_log.append(move)
                             self.black_king_can_castle[0] = False
+
+                    if player_str == "White":
+                        self._white_king_location = (next_square_row, next_square_col)
+                    else:
                         self._black_king_location = (next_square_row, next_square_col)
-                        # self.can_en_passant_bool = False  WHAT IS THIS
-                elif moving_piece.get_name() is "r":
+
+                # Rook moves
+                elif piece_name == "R":
+                    logger.debug(f"{player_str} Rook moves from {starting_square} to {ending_square}")
                     if moving_piece.is_player(Player.PLAYER_1) and current_square_col == 0:
                         self.white_king_can_castle[1] = False
                     elif moving_piece.is_player(Player.PLAYER_1) and current_square_col == 7:
                         self.white_king_can_castle[2] = False
                     elif moving_piece.is_player(Player.PLAYER_2) and current_square_col == 0:
-                        self.white_king_can_castle[1] = False
+                        self.black_king_can_castle[1] = False
                     elif moving_piece.is_player(Player.PLAYER_2) and current_square_col == 7:
-                        self.white_king_can_castle[2] = False
+                        self.black_king_can_castle[2] = False
                     self.move_log.append(chess_move(starting_square, ending_square, self, self._is_check))
                     self.can_en_passant_bool = False
-                # Add move class here
-                elif moving_piece.get_name() is "p":
-                    # Promoting white pawn
+
+                # Pawn moves
+                elif piece_name == "P":
+                    logger.debug(f"{player_str} Pawn moves from {starting_square} to {ending_square}")
                     if moving_piece.is_player(Player.PLAYER_1) and next_square_row == 7:
-                        # print("promoting white pawn")
                         if is_ai:
                             self.promote_pawn_ai(starting_square, moving_piece, ending_square)
                         else:
                             self.promote_pawn(starting_square, moving_piece, ending_square)
                         temp = False
-                    # Promoting black pawn
                     elif moving_piece.is_player(Player.PLAYER_2) and next_square_row == 0:
-                        # print("promoting black pawn")
                         if is_ai:
                             self.promote_pawn_ai(starting_square, moving_piece, ending_square)
                         else:
                             self.promote_pawn(starting_square, moving_piece, ending_square)
                         temp = False
-                    # Moving pawn forward by two
-                    # Problem with Pawn en passant ai
                     elif abs(next_square_row - current_square_row) == 2 and current_square_col == next_square_col:
-                        # print("move pawn forward")
+                        logger.debug(f"{player_str} Pawn moves forward two squares")
                         self.move_log.append(chess_move(starting_square, ending_square, self, self._is_check))
-                        # self.can_en_passant_bool = True
                         self._en_passant_previous = (next_square_row, next_square_col)
-                    # en passant
-                    elif abs(next_square_row - current_square_row) == 1 and abs(
-                            current_square_col - next_square_col) == 1 and \
+                    elif abs(next_square_row - current_square_row) == 1 and abs(current_square_col - next_square_col) == 1 and \
                             self.can_en_passant(current_square_row, current_square_col):
-                        # print("en passant")
+                        logger.debug(f"{player_str} Pawn performs en passant capture")
+                        move = chess_move(starting_square, ending_square, self, self._is_check)
                         if moving_piece.is_player(Player.PLAYER_1):
-                            move = chess_move(starting_square, ending_square, self, self._is_check)
                             move.en_passant_move(self.board[next_square_row - 1][next_square_col],
-                                                 (next_square_row - 1, next_square_col))
-                            self.move_log.append(move)
+                                                (next_square_row - 1, next_square_col))
                             self.board[next_square_row - 1][next_square_col] = Player.EMPTY
                         else:
-                            move = chess_move(starting_square, ending_square, self, self._is_check)
                             move.en_passant_move(self.board[next_square_row + 1][next_square_col],
-                                                 (next_square_row + 1, next_square_col))
-                            self.move_log.append(move)
+                                                (next_square_row + 1, next_square_col))
                             self.board[next_square_row + 1][next_square_col] = Player.EMPTY
-                    # moving forward by one or taking a piece
+                        self.move_log.append(move)
                     else:
                         self.move_log.append(chess_move(starting_square, ending_square, self, self._is_check))
                         self.can_en_passant_bool = False
+
+                # Knight and other pieces
                 else:
+                    if piece_name == "N":
+                        logger.info(f"{player_str} Knight moves from {starting_square} to {ending_square}")
+                    else:
+                        logger.debug(f"{player_str} {piece_name} moves from {starting_square} to {ending_square}")
                     self.move_log.append(chess_move(starting_square, ending_square, self, self._is_check))
                     self.can_en_passant_bool = False
 
@@ -467,7 +618,7 @@ class game_state:
                 self.white_turn = not self.white_turn
 
             else:
-                pass
+                logger.info(f"Invalid move attempted from {starting_square} to {ending_square} by {player_str}")
 
     def undo_move(self):
         if self.move_log:
@@ -844,17 +995,22 @@ class game_state:
         # knights
         row_change = [-2, -2, -1, -1, +1, +1, +2, +2]
         col_change = [-1, +1, -2, +2, -2, +2, +1, -1]
+        col_change = [-1, +1, -2, +2, -2, +2, +1, -1]
         for i in range(0, 8):
             if self.is_valid_piece(king_location_row + row_change[i], king_location_col + col_change[i]) and \
-                    not self.get_piece(king_location_row + row_change[i], king_location_col + col_change[i]).is_player(
-                        player):
-                if (king_location_row, king_location_col) in self.get_piece(king_location_row + row_change[i],
-                                                                            king_location_col + col_change[
-                                                                                i]).get_valid_piece_takes(self):
-                    # self._is_check = True
+                    not self.get_piece(king_location_row + row_change[i], king_location_col + col_change[i]).is_player(player):
+                if (king_location_row, king_location_col) in self.get_piece(
+                        king_location_row + row_change[i],
+                        king_location_col + col_change[i]
+                ).get_valid_piece_takes(self):
                     _checks.append((king_location_row + row_change[i], king_location_col + col_change[i]))
-        # print([_checks, _pins, _pins_check])
-        return [_pins_check, _pins, _pins_check]
+
+        # כאן ההדפסה תתבצע רק אם _checks שונים מהפעם הקודמת
+        if _checks and _checks != self._last_check_sources:
+            logger.warning(f"Check! Player {player} is in check from: {_checks}")
+            self._last_check_sources = _checks.copy()
+        return [_checks, _pins, _pins_check]
+
 
 
 class chess_move():
