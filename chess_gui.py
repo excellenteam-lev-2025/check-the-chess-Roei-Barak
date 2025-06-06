@@ -7,6 +7,7 @@
 #
 import chess_engine
 import pygame as py
+from logger_config import logger
 
 import ai_engine
 from enums import Player
@@ -86,6 +87,7 @@ def highlight_square(screen, game_state, valid_moves, square_selected):
 
 
 def main():
+    log_written = False
     # Check for the number of players and the color of the AI
     human_player = ""
     while True:
@@ -171,6 +173,7 @@ def main():
                     square_selected = ()
                     player_clicks = []
                     valid_moves = []
+                    log_written = False
                 elif e.key == py.K_u:
                     game_state.undo_move()
                     print(len(game_state.move_log))
@@ -181,12 +184,23 @@ def main():
         if endgame == 0:
             game_over = True
             draw_text(screen, "Black wins.")
+            if not log_written:
+                logger.info("Game over: Black wins.")
+                log_written = True
         elif endgame == 1:
             game_over = True
             draw_text(screen, "White wins.")
+            if not log_written:
+                logger.info("Game over: White wins.")
+                log_written = True
         elif endgame == 2:
             game_over = True
             draw_text(screen, "Stalemate.")
+            if not log_written:
+                logger.info("Game over: Stalemate.")
+                log_written = True
+
+
 
         clock.tick(MAX_FPS)
         py.display.flip()
